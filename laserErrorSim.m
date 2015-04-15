@@ -29,7 +29,7 @@ while t<0.5
     t_GPS = GPS(t,v,t_GPS0);
     ALS_loc = [ALS_loc t_GPS];
     c = R_N*t_LG+t_GPS;
-    [p s] = GetTrueFootprint(Rtag,c,surfaceDefinition);
+    [p s] = GetTrueFootprint1(Rtag,c,surfaceFuction);
     surface = [surface p];
     pstar = delta_R_N*R_N*(delta_R_M*R_M*delta_R_L*R_L*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+t_GPS;
     ALS_scan = [ALS_scan pstar];
