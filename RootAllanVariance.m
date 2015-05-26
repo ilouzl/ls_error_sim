@@ -9,7 +9,7 @@ for i=0:Nlog
     y = x(1:N_tmp);
     y = reshape(y,tau,N_tmp/tau);
     a = mean(y,1);
-    ravar(i+1) = sum(diff(a).^2)/(2*(N_tmp-1));
+    ravar(i+1) = sum(diff(a).^2)/(2*((N_tmp/tau)-1));
 end
     
 
