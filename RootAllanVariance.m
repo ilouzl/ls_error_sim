@@ -3,7 +3,7 @@ function [T,sigma] = RootAllanVariance(x,fs,pts,overlapped)
 % fs - samping rate
 % pts - numbr of points in th AVAR output (approximated)
 % overlapped - flag to use overlapped AVAR method
-
+x = x(:);
 [N,M] = size(x);                    % figure out how big the output data set is
 n = 2.^(0:floor(log2(N/2)))';
 maxN = n(end);                      % determine largest bin size

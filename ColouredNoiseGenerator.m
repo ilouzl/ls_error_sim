@@ -1,5 +1,5 @@
 %% based on  Hristo Zhivomirov Noise Generator
-function y = ColouredNoiseGenerator(N,beta)
+function y = ColouredNoiseGenerator(N,beta,sigma)
 
 % function: y = ColouredNoiseGenerator(N,beta) 
 % N - number of samples to be returned in row vector
@@ -18,7 +18,7 @@ else
 end
 
 % generate white noise
-x = randn(1, M);
+x = sigma*randn(1, M);
 
 % FFT
 X = fft(x);
@@ -44,8 +44,8 @@ y = ifft(X);
 y = real(y(1, 1:N));
 
 % ensure unity standard deviation and zero mean value
-y = y - mean(y);
-yrms = sqrt(mean(y.^2));
-y = y/yrms;
+% y = y - mean(y);
+% yrms = sqrt(mean(y.^2));
+% y = y/yrms;
 
 end
