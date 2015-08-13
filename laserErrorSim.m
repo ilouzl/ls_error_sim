@@ -1,9 +1,9 @@
 clearvars; close all; clc;
 
-run systematic_errors.m;
-run LS_parameters.m;
-run surface_definition.m;
-run platform_parameters.m;
+systematic_errors;
+LS_parameters;
+surface_definition;
+platform_parameters;
 
 j = 1; % scan line
 i = 0; % laser beam within scan
