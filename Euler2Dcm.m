@@ -1,7 +1,9 @@
-function C = Euler2Clb(phi, theta, psi)
-phi=phi*pi/180;
-theta=theta*pi/180;
-psi=psi*pi/180;
+function C = Euler2Dcm(phi, theta, psi)
+if nargin < 3
+    psi = phi(3);
+    theta = phi(2);
+    phi = phi(1);
+end
 Rx=[1 0 0; ...
     0 cos(phi) sin(phi);...
     0 -sin(phi) cos(phi)];
@@ -11,4 +13,7 @@ Ry=[cos(theta) 0 -sin(theta);...
 Rz=[cos(psi) sin(psi) 0;...
     -sin(psi) cos(psi) 0;...
     0 0 1];
+Rx(abs(Rx)<eps) = 0;
+Ry(abs(Ry)<eps) = 0;
+Rz(abs(Rz)<eps) = 0;
 C = Rx*Ry*Rz;
