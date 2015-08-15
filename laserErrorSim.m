@@ -16,7 +16,7 @@ surface=[];
 ALS_loc = [];
 ALS_scan=[];
 e=[];
-R_G = Euler2Dcm(0,-pi/2,0);
+Cen= Euler2Dcm(pi,0,0);
 while t<1
     i = i+1;
     if i > n
@@ -26,26 +26,22 @@ while t<1
     t = (j-1)/f_s + (i-1)/f_p;              % calculate time by line and pulse indices
     tau_i = tau/2 - (i-1)*tau/(n-1);        % instntaneous laser angle
     delta_tau_i = eps + delta_tau/2 - delta_tau*(i-1)/(n-1); % instntaneous laser angle error
-    delta_R_L = eye(3) + ...
+    delta_Cla = eye(3) + ...
         SkewSymmetric([delta_tau_i delta_phi delta_kappa]); % scan angle errors
-    R_L = Euler2Dcm(tau_i,0,0);
-    R_N = INS(t);
+    Cla = Euler2Dcm(tau_i,0,0);
+    Cbn = INS(t);
 %     k = floor(t/0.01)+1;
 %     R_N = Euler2Dcm(x_insP(7:9,k));
-    Rtag = R_N*R_M*R_L;
+    Rtag = Cen'*Cbn*Cab*Cla;
     t_GPS = GPS(t,v,t_GPS0);
 %     t_GPS = x_insP(1:3,k);
     ALS_loc = [ALS_loc t_GPS];
-    c = R_N*t_LG+t_GPS;
+    c = Cen'*Cbn*t_LG+t_GPS;
     [p s] = GetTrueFootprint(Rtag,c,surfaceDefinition);
     surface = [surface p];
-    pstar = delta_R_N*R_N*(delta_R_M*R_M*delta_R_L*R_L*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+t_GPS;
+    pstar = Cen'*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+t_GPS;
     ALS_scan = [ALS_scan pstar];
 end
-R_G = Euler2Dcm(0,0,0);
-ALS_scan = (ALS_scan'*R_G)';
-surface = (surface'*R_G)';
-ALS_loc = (ALS_loc'*R_G)';
 ALS_err = ALS_scan-surface;
 figure(1);
 scatter3(surface(1,:),surface(2,:),surface(3,:),'.');hold on;

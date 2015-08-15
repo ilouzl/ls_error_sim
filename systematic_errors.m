@@ -13,7 +13,7 @@ delta_kappa = 0*d2r;    % [rad] scan plane error around z
 delta_alpha = 0*d2r;      % [rad] laser mounting error around x
 delta_beta = 0*d2r;       % [rad] laser mounting error around y
 delta_gamma = 0*d2r;      % [rad] laser mounting error around z
-delta_R_M = eye(3) + ...
+delta_Cab = eye(3) + ...
     SkewSymmetric([delta_alpha, delta_beta, delta_gamma]); % laser mounting error
 delta_t_L = [0; 0; 0]; % [m] laser lever arm
 
@@ -26,7 +26,7 @@ delta_t_LG = delta_t_G+delta_t_L; % [m] lever arm error
 delta_rho = 0*d2r;      % [rad] INS error around x
 delta_p = 0*d2r;      % [rad] INS error around y
 delta_h = 0*d2r;      % [rad] INS error around z
-delta_R_N =eye(3) + ...
+delta_Cbn =eye(3) + ...
     SkewSymmetric([delta_rho, delta_p, delta_h]);
  
  
