@@ -6,7 +6,7 @@ surface_definition;
 platform_parameters;
 
 
-external_INS = 0;
+external_INS = 1;
 
 j = 1; % scan line
 i = 0; % laser beam within scan
@@ -15,7 +15,8 @@ surface=[];
 ALS_loc = [];
 ALS_scan=[];
 e=[];
-while t<1
+Cned2enu = Euler2Dcm(pi,0,pi/2);
+while t<5
     i = i+1;
     if i > n
         i=1;
@@ -28,20 +29,19 @@ while t<1
         SkewSymmetric([delta_tau_i delta_phi delta_kappa]); % scan angle errors
     Cla = Euler2Dcm(tau_i,0,0);
     if external_INS
-        [Cbn,Cen,GPSdelta] = INSfile(t,1/f_p);
-        t_GPS = t_GPS0+GPSdelta;
+        [Cbn,Cen,p_ned_delta] = INSfile(t,1/f_p);
+        p_enu = p0_enu+Cned2enu*p_ned_delta;
     else
         Cbn = INS(t);
         Cen= Euler2Dcm(0,-pi,0);
-        Cned2enu = Euler2Dcm(pi,0,pi/2);
-        t_GPS = GPS(t,Cned2enu*v_ned,p0_enu); % ENU
+        p_enu = GPS(t,Cned2enu*v_ned,p0_enu); % ENU
     end
     Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU
-    ALS_loc = [ALS_loc t_GPS];            % ENU
-    c = Cned2enu*Cbn*t_LG+t_GPS;
+    ALS_loc = [ALS_loc p_enu];            % ENU
+    c = Cned2enu*Cbn*t_LG+p_enu;
     [p s] = GetTrueFootprint(Rtag,c,surfaceDefinition);
     surface = [surface p];                % ENU
-    pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+t_GPS;
+    pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu;
     ALS_scan = [ALS_scan pstar];
 end
 ALS_err = ALS_scan-surface;
