@@ -1,13 +1,12 @@
-clearvars; close all; clc;
+clearvars; close all; clc; clear INSfile.m;
 
 systematic_errors;
 LS_parameters;
 surface_definition;
 platform_parameters;
 
-load data;
-r = x_insP(1:3,:);
-r = repmat(r(3,:),3,1).*[repmat(cos(r(1,:)),2,1).*[cos(r(2,:)) ;sin(r(2,:))]; sin(r(1,:))];
+
+external_INS = 0;
 
 j = 1; % scan line
 i = 0; % laser beam within scan
@@ -16,7 +15,6 @@ surface=[];
 ALS_loc = [];
 ALS_scan=[];
 e=[];
-Cen= Euler2Dcm(pi,0,0);
 while t<1
     i = i+1;
     if i > n
@@ -29,12 +27,15 @@ while t<1
     delta_Cla = eye(3) + ...
         SkewSymmetric([delta_tau_i delta_phi delta_kappa]); % scan angle errors
     Cla = Euler2Dcm(tau_i,0,0);
-    Cbn = INS(t);
-%     k = floor(t/0.01)+1;
-%     R_N = Euler2Dcm(x_insP(7:9,k));
+    if external_INS
+        [Cbn,Cen,GPSdelta] = INSfile(t,1/f_p);
+        t_GPS = t_GPS0+GPSdelta;
+    else
+        Cbn = INS(t);
+        Cen= Euler2Dcm(0,-pi/2,0);
+        t_GPS = GPS(t,v,t_GPS0);
+    end
     Rtag = Cen'*Cbn*Cab*Cla;
-    t_GPS = GPS(t,v,t_GPS0);
-%     t_GPS = x_insP(1:3,k);
     ALS_loc = [ALS_loc t_GPS];
     c = Cen'*Cbn*t_LG+t_GPS;
     [p s] = GetTrueFootprint(Rtag,c,surfaceDefinition);
