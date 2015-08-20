@@ -15,7 +15,6 @@ tri = delaunay(x,y);
 %% Plot it with TRISURF
 
 h = trisurf(tri, x, y, z);
-xlabel('X'); ylabel('Y'); zlabel('Z');
 % axis vis3d
 
 %% Clean it up
