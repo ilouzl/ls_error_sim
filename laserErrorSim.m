@@ -8,7 +8,7 @@ platform_parameters;
 
 % local simulation parameters
 external_INS = 1;
-simulationLengthTime = 5; % [sec]
+simulationLengthTime = 0.02; % [sec]
 simulationLengthSamples = simulationLengthTime*f_p;
 
 
@@ -21,6 +21,7 @@ j = 1; % scan line
 i = 0; % laser beam within scan
 t=0;
 [ins_euler,surface,ALS_loc,ALS_scan]=deal(zeros(3,simulationLengthSamples));
+[rho] = deal(zeros(1,simulationLengthSamples));
 for idx = 1:simulationLengthSamples
     i = i+1;
     if i > n
@@ -51,6 +52,7 @@ for idx = 1:simulationLengthSamples
     ALS_scan(:,idx) = pstar;
     ins_euler(:,idx) = Dcm2Euler(Cbn);
     ins_v_ned(:,idx) = v_ned;
+    rho(idx) = s + delta_r;
 end
 
 ALS_err = ALS_scan-surface;
@@ -85,3 +87,5 @@ subplot(2,2,4);
 plot(t,ins_v_ned'); legend({'V_N','V_E','V_D'}); 
 xlabel('sec'); ylabel('m/s');
 
+
+biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
