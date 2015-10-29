@@ -7,8 +7,8 @@ surface_definition;
 platform_parameters;
 
 % local simulation parameters
-external_INS = 1;
-simulationLengthTime = 0.02; % [sec]
+external_INS = 0;
+simulationLengthTime = 0.1; % [sec]
 simulationLengthSamples = simulationLengthTime*f_p;
 
 
@@ -53,6 +53,7 @@ for idx = 1:simulationLengthSamples
     ins_euler(:,idx) = Dcm2Euler(Cbn);
     ins_v_ned(:,idx) = v_ned;
     rho(idx) = s + delta_r;
+    tau_i_vec(idx) = tau_i;
 end
 
 ALS_err = ALS_scan-surface;
@@ -64,28 +65,42 @@ scatter3(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:),'r','.');
 xlabel('E'); ylabel('N'); zlabel('U');
 legend({'surface','trajectory', 'scan'}); 
 
-figure(2);
-title('ALS scan');
-Scatter2Surf(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:));
-hold on;
-Scatter2Surf(surface(1,:),surface(2,:),surface(3,:));
-xlabel('E'); ylabel('N'); zlabel('U');
-legend({'scan','surface'}); 
+% figure(2);
+% title('ALS scan');
+% Scatter2Surf(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:));
+% hold on;
+% Scatter2Surf(surface(1,:),surface(2,:),surface(3,:));
+% xlabel('E'); ylabel('N'); zlabel('U');
+% legend({'scan','surface'}); 
 
-figure(3);
-title('Platform performance');
-t = 0:1/f_p:(simulationLengthTime-1/f_p);
-subplot(2,2,1:2);
-plot3(ALS_loc(1,:),ALS_loc(2,:),ALS_loc(3,:),'g');
-xlabel('E'); ylabel('N'); zlabel('U');
-legend({'trajectory'}); 
-subplot(2,2,3);
-plot(t,ins_euler'*180/pi); 
-legend({'\phi','\theta','\psi'}); 
-xlabel('sec'); ylabel('deg');
-subplot(2,2,4);
-plot(t,ins_v_ned'); legend({'V_N','V_E','V_D'}); 
-xlabel('sec'); ylabel('m/s');
+% figure(3);
+% title('Platform performance');
+% t = 0:1/f_p:(simulationLengthTime-1/f_p);
+% subplot(2,2,1:2);
+% plot3(ALS_loc(1,:),ALS_loc(2,:),ALS_loc(3,:),'g');
+% xlabel('E'); ylabel('N'); zlabel('U');
+% legend({'trajectory'}); 
+% subplot(2,2,3);
+% plot(t,ins_euler'*180/pi); 
+% legend({'\phi','\theta','\psi'}); 
+% xlabel('sec'); ylabel('deg');
+% subplot(2,2,4);
+% plot(t,ins_v_ned'); legend({'V_N','V_E','V_D'}); 
+% xlabel('sec'); ylabel('m/s');
 
 
-biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
+% biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
+l=ALS_loc;
+s = [surfaceDefinition(1:2) -1 surfaceDefinition(3)];
+euler = ins_euler;
+[~,n] = size(l);
+for i=1:n
+    c(:,i) = s(1:3)*Euler2Dcm(euler(:,i));
+end
+
+w = rho'.*c(3,:)'-(s*[l;ones(1,n)])';
+A = [-c(3,:)'];
+B = eye(n);
+biases = inv(A'*A)*A'*w
+
+

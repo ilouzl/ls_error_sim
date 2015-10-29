@@ -1,7 +1,7 @@
 d2r = pi/180;
 % LASER ERRORS
 %   RANGE
-delta_r = 0;        % [m], range error
+delta_r = 0.1;        % [m], range error
 %   SCAN ANGLE
 eps = 0*d2r;              % [rad] index error
 delta_tau = 0*d2r;      % [rad] swath angle error

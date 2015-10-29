@@ -1,1 +1,1 @@
-surfaceDefinition = [0,0,0];
+surfaceDefinition = [1,1,0];
