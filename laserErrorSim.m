@@ -8,9 +8,8 @@ platform_parameters;
 
 % local simulation parameters
 external_INS = 0;
-simulationLengthTime = 0.1; % [sec]
+simulationLengthTime = 0.05; % [sec]
 simulationLengthSamples = simulationLengthTime*f_p;
-
 
 if external_INS
     p_enu = p0_enu;
@@ -44,15 +43,19 @@ for idx = 1:simulationLengthSamples
     end
     Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU  
     c = Cned2enu*Cbn*t_LG+p_enu;
-    [p, s] = GetTrueFootprint(Rtag,c,surfaceDefinition);  % real surface
-    pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu; % measured surface
-        
+    [p, s] = GetTrueFootprint(Rtag,c,surfaceDefinition);  % real surface geolocatoin
+    pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu; % biased surface geolocation
+    
+    Rtag2 = Cned2enu*delta_Cbn*Cbn*delta_Cab*Cab*delta_Cla*Cla;        
+    c2 = Cned2enu*delta_Cbn*Cbn*(t_LG+delta_t_LG)+p_enu;
+    [p2, s2] = GetTrueFootprint(Rtag2,c2,surfaceDefinition);  % real surface
+    
     ALS_loc(:,idx) = p_enu;            % ENU
     surface(:,idx) = p;                % ENU
     ALS_scan(:,idx) = pstar;
     ins_euler(:,idx) = Dcm2Euler(Cbn);
     ins_v_ned(:,idx) = v_ned;
-    rho(idx) = s + delta_r;
+    rho(idx) = s2 + delta_r;
     tau_i_vec(idx) = tau_i;
 end
 
@@ -92,15 +95,24 @@ legend({'surface','trajectory', 'scan'});
 % biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
 l=ALS_loc;
 s = [surfaceDefinition(1:2) -1 surfaceDefinition(3)];
+s = s/norm(s);
 euler = ins_euler;
 [~,n] = size(l);
 for i=1:n
     c(:,i) = s(1:3)*Euler2Dcm(euler(:,i));
+    err(i) = norm(ALS_err(:,i));
 end
-
 w = rho'.*c(3,:)'-(s*[l;ones(1,n)])';
-A = [-c(3,:)'];
-B = eye(n);
-biases = inv(A'*A)*A'*w
+% w = err';
 
+% profiling
+A = [c(1,:)' c(2,:)' -c(3,:)' -rho(:).*c(1,:)' rho(:).*c(2,:)']; %[dx dx dr rM(y) rM(x)]
+% linear scanner
+% A = [c(1,:)' c(2,:)' -c(3,:)' (tau_i_vec(:).*c(1,:)'-c(2,:)').*rho(:) -rho(:).*c(1,:)' rho(:).*(c(2,:)'-tau_i_vec(:).*c(3,:)')]; %[dx dx dr rM(z) rM(y) rM(x)]
+
+corrcoef(A)
+A = A(:,[4 3]);
+corrcoef(A)
+biases = inv(A'*A)*A'*w
+eig(A'*A)
 
