@@ -111,16 +111,20 @@ legend({'surface','trajectory', 'scan'});
 
 % biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
 l=ALS_loc;
-s = [surfaceDefinition(1:2) -1 surfaceDefinition(3)];
-s = s/norm(s);
 euler = ins_euler;
 [~,n] = size(l);
+s=[];
 for i=1:n
-    c(:,i) = s(1:3)*Euler2Dcm(euler(:,i));
-    err(i) = norm(ALS_err(:,i));
+    surfaces(1:3,i) = Cned2enu*surfaces(1:3,i);
+    s(:,i) = [surfaces(1:2,i)' -1 surfaces(3,i)]';
+    s(1:3,i) = s(1:3,i)/norm(s(1:3,i));
+    c(:,i) = s(1:3,i)'*Euler2Dcm(euler(:,i));
 end
-w = rho'.*c(3,:)'-(s*[l;ones(1,n)])';
-% w = err';
+w = rho'.*c(3,:)'-sum(s.*[l;ones(1,n)])';
+l(3,:) = l(3,:)-rho;
+l(1,:) = l(1,:)*2*d2r;
+
+
 
 % profiling
 A = [c(1,:)' c(2,:)' -c(3,:)' -rho(:).*c(1,:)' rho(:).*c(2,:)']; %[dx dx dr rM(y) rM(x)]
@@ -128,7 +132,7 @@ A = [c(1,:)' c(2,:)' -c(3,:)' -rho(:).*c(1,:)' rho(:).*c(2,:)']; %[dx dx dr rM(y
 % A = [c(1,:)' c(2,:)' -c(3,:)' (tau_i_vec(:).*c(1,:)'-c(2,:)').*rho(:) -rho(:).*c(1,:)' rho(:).*(c(2,:)'-tau_i_vec(:).*c(3,:)')]; %[dx dx dr rM(z) rM(y) rM(x)]
 
 corrcoef(A)
-A = A(:,[4 3]);
+A = A(:,[1 2 3 4 5]);
 corrcoef(A)
 biases = inv(A'*A)*A'*w
 eig(A'*A)
