@@ -10,7 +10,7 @@ delta_kappa = 0*d2r;    % [rad] scan plane error around z
 
 % MOUNTING ERRORS
 %   LASER
-delta_alpha = 0*d2r;      % [rad] laser mounting error around x
+delta_alpha = 4*d2r;      % [rad] laser mounting error around x
 delta_beta = 2*d2r;       % [rad] laser mounting error around y
 delta_gamma = 0*d2r;      % [rad] laser mounting error around z
 delta_Cab = eye(3) + ...
@@ -18,7 +18,7 @@ delta_Cab = eye(3) + ...
 delta_t_L = [0 ; 0; 0]; % [m] laser lever arm
 
 %  GPS
-delta_t_G = [0; 0; 0]; % [m] GPS lever arm
+delta_t_G = [0.22; 0.33; 0]; % [m] GPS lever arm
 
 delta_t_LG = delta_t_G+delta_t_L; % [m] lever arm error
 

@@ -16,10 +16,11 @@ if external_INS
 end
 
 Cned2enu = Euler2Dcm(pi,0,pi/2);
+Cned2enu = eye(3);
 j = 1; % scan line
 i = 0; % laser beam within scan
 t=0;
-[ins_euler,surface,ALS_loc,ALS_scan]=deal(zeros(3,simulationLengthSamples));
+[ins_euler,surface,ALS_loc,ALS_scan, surfaces]=deal(zeros(3,simulationLengthSamples));
 [rho] = deal(zeros(1,simulationLengthSamples));
 for idx = 1:simulationLengthSamples
     i = i+1;
@@ -27,6 +28,7 @@ for idx = 1:simulationLengthSamples
         i=1;
         j = j+1;
     end
+        
     t = (j-1)/f_s + (i-1)/f_p;              % calculate time by line and pulse indices
     tau_i = tau/2 - (i-1)*tau/(n-1);        % instntaneous laser angle
     delta_tau_i = eps + delta_tau/2 - delta_tau*(i-1)/(n-1); % instntaneous laser angle error
@@ -41,22 +43,37 @@ for idx = 1:simulationLengthSamples
         Cen= Euler2Dcm(0,-pi,0);
         p_enu = GPS(t,Cned2enu*v_ned,p0_enu); % ENU
     end
-    Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU  
+    
+    if t<0.01
+        surfaceDefinition  = [0;0;0];
+    elseif 0.01 < t && t <0.02
+        surfaceDefinition  = [1;0;0];
+    elseif 0.02 < t && t< 0.03
+        surfaceDefinition  = [-1;0;0];
+    elseif 0.03 < t && t< 0.04
+        surfaceDefinition  = [0;1;0];
+    elseif 0.04 < t && t< 0.05
+        surfaceDefinition  = [0;-1;0];
+    end
+    
+    Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU
     c = Cned2enu*Cbn*t_LG+p_enu;
     [p, s] = GetTrueFootprint(Rtag,c,surfaceDefinition);  % real surface geolocatoin
     pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu; % biased surface geolocation
-    
+  
     Rtag2 = Cned2enu*delta_Cbn*Cbn*delta_Cab*Cab*delta_Cla*Cla;        
     c2 = Cned2enu*delta_Cbn*Cbn*(t_LG+delta_t_LG)+p_enu;
     [p2, s2] = GetTrueFootprint(Rtag2,c2,surfaceDefinition);  % real surface
+
     
     ALS_loc(:,idx) = p_enu;            % ENU
     surface(:,idx) = p;                % ENU
     ALS_scan(:,idx) = pstar;
     ins_euler(:,idx) = Dcm2Euler(Cbn);
     ins_v_ned(:,idx) = v_ned;
-    rho(idx) = s2 + delta_r;
+    rho(idx) = -s2 + delta_r;
     tau_i_vec(idx) = tau_i;
+    surfaces(:,idx) = surfaceDefinition;
 end
 
 ALS_err = ALS_scan-surface;
