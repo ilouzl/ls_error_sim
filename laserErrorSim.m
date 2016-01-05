@@ -58,13 +58,13 @@ for idx = 1:simulationLengthSamples
     
     Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU
     c = Cned2enu*Cbn*t_LG+p_enu;
-    [p, s] = GetTrueFootprint(Rtag,c,surfaceDefinition);  % real surface geolocatoin
+    s = ScannerOutput(c,surfaceDefinition,Rtag);  % real surface geolocatoin
+    p = Rtag*[0;0;s]+c;
     pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu; % biased surface geolocation
-  
+    
     Rtag2 = Cned2enu*delta_Cbn*Cbn*delta_Cab*Cab*delta_Cla*Cla;        
     c2 = Cned2enu*delta_Cbn*Cbn*(t_LG+delta_t_LG)+p_enu;
-    [p2, s2] = GetTrueFootprint(Rtag2,c2,surfaceDefinition);  % real surface
-
+    s2 = ScannerOutput(c2,surfaceDefinition,Rtag2);
     
     ALS_loc(:,idx) = p_enu;            % ENU
     surface(:,idx) = p;                % ENU
