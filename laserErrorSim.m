@@ -35,6 +35,7 @@ for idx = 1:simulationLengthSamples
     delta_Cla = eye(3) + ...
         SkewSymmetric([delta_tau_i delta_phi delta_kappa]); % scan angle errors
     Cla = Euler2Dcm(tau_i,0,0);
+    Cla = eye(3) + SkewSymmetric(tau_i,0,0);
     if external_INS
         [Cbn,Cen,v_ned] = INSfile(t);
         p_enu = p_enu+Cned2enu*v_ned/f_p;
@@ -71,7 +72,7 @@ for idx = 1:simulationLengthSamples
     ALS_scan(:,idx) = pstar;
     ins_euler(:,idx) = Dcm2Euler(Cbn);
     ins_v_ned(:,idx) = v_ned;
-    rho(idx) = -s2 + delta_r;
+    rho(idx) = s2 + delta_r;
     tau_i_vec(idx) = tau_i;
     surfaces(:,idx) = surfaceDefinition;
 end
@@ -109,31 +110,5 @@ legend({'surface','trajectory', 'scan'});
 % xlabel('sec'); ylabel('m/s');
 
 
-% biases = BiasesRecovery(ALS_loc,[1 surfaceDefinition],ins_euler,rho);
-l=ALS_loc;
-euler = ins_euler;
-[~,n] = size(l);
-s=[];
-for i=1:n
-    surfaces(1:3,i) = Cned2enu*surfaces(1:3,i);
-    s(:,i) = [surfaces(1:2,i)' -1 surfaces(3,i)]';
-    s(1:3,i) = s(1:3,i)/norm(s(1:3,i));
-    c(:,i) = s(1:3,i)'*Euler2Dcm(euler(:,i));
-end
-w = rho'.*c(3,:)'-sum(s.*[l;ones(1,n)])';
-l(3,:) = l(3,:)-rho;
-l(1,:) = l(1,:)*2*d2r;
-
-
-
-% profiling
-A = [c(1,:)' c(2,:)' -c(3,:)' -rho(:).*c(1,:)' rho(:).*c(2,:)']; %[dx dx dr rM(y) rM(x)]
-% linear scanner
-% A = [c(1,:)' c(2,:)' -c(3,:)' (tau_i_vec(:).*c(1,:)'-c(2,:)').*rho(:) -rho(:).*c(1,:)' rho(:).*(c(2,:)'-tau_i_vec(:).*c(3,:)')]; %[dx dx dr rM(z) rM(y) rM(x)]
-
-corrcoef(A)
-A = A(:,[1 2 3 4 5]);
-corrcoef(A)
-biases = inv(A'*A)*A'*w
-eig(A'*A)
-
+biases = BiasesRecovery(ALS_loc,surfaces,ins_euler,rho,tau_i_vec);
+biases/d2r
