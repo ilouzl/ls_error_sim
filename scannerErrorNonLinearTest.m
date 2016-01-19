@@ -4,7 +4,7 @@ kappa = 2*pi/180;
 phi = 0*pi/180;    % pitch bias [rad]
 omega = 3*pi/180; 
 alpha = 15*pi/180;
-s = [-1 -1 1 0]'; % surface [a,b,c,d]. ax + by + cz + d = 0;
+s = [1 1 -1 0]'; % surface [a,b,c,d]. ax + by + cz + d = 0;
 v = [90;0;0];   % platform velocity
 x0 = [0;0;1000]; % platform initial position
 fp = 5000;      % laser pulse rate
@@ -25,6 +25,11 @@ c = s(1:3)'*Rins;
 d = c*r; 
 rho = -(s(1:3)'*x + s(4)+d*delta_rho)./d;
 plot(x(1,:),rho);
+
+N = length(alpha);
+surfaces = repmat(s([1,2,4]),1,N);
+[biases] = NLBiasesRecovery(x,surfaces ,zeros(3,N),rho,alpha);
+biases*180/pi
 y = 1;
 % hold on; plot(x(1,:),rho);
 [phi,kappa,omega,delta_rho] = deal(0);
