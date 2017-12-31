@@ -1,53 +1,114 @@
-clearvars; close all; clc;
+clearvars; close all; clc; clear INSfile.m;
 
-run systematic_errors.m;
-run LS_parameters.m;
-run surface_definition.m;
-run platform_parameters.m;
+% load configuration and parementes
+systematic_errors;
+LS_parameters;
+surface_definition;
+platform_parameters;
 
+% local simulation parameters
+external_INS = 0;
+simulationLengthTime = 0.05; % [sec]
+simulationLengthSamples = simulationLengthTime*f_p;
+
+if external_INS
+    p_enu = p0_enu;
+end
+
+Cned2enu = Euler2Dcm(pi,0,pi/2);
+Cned2enu = eye(3);
 j = 1; % scan line
 i = 0; % laser beam within scan
 t=0;
-surface=[];
-ALS_loc = [];
-ALS_scan=[];
-e=[];
-while t<0.5
+[ins_euler,surface,ALS_loc,ALS_scan, surfaces]=deal(zeros(3,simulationLengthSamples));
+[rho] = deal(zeros(1,simulationLengthSamples));
+for idx = 1:simulationLengthSamples
     i = i+1;
     if i > n
         i=1;
         j = j+1;
     end
-    t = (j-1)/f_s + (i-1)/f_p;
-    tau_i = tau/2 - (i-1)*tau/(n-1);
-    delta_tau_i = eps + delta_tau/2 - delta_tau*(i-1)/(n-1);
-    delta_R_L = eye(3) + ...
-        SkewSymmetric([delta_tau_i delta_phi delta_kappa]*pi/180); % scan angle errors
-    R_L = Euler2Clb(-tau_i,0,0);
-    R_N = INS(t);
-    Rtag = R_N*R_M*R_L;
-    t_GPS = GPS(t,v,t_GPS0);
-    ALS_loc = [ALS_loc t_GPS];
-    c = R_N*t_LG+t_GPS;
-    [p s] = GetTrueFootprint(Rtag,c,surfaceDefinition);
-    surface = [surface p];
-    pstar = delta_R_N*R_N*(delta_R_M*R_M*delta_R_L*R_L*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+t_GPS;
-    ALS_scan = [ALS_scan pstar];
+        
+    t = (j-1)/f_s + (i-1)/f_p;              % calculate time by line and pulse indices
+    tau_i = tau/2 - (i-1)*tau/(n-1);        % instntaneous laser angle
+    delta_tau_i = eps + delta_tau/2 - delta_tau*(i-1)/(n-1); % instntaneous laser angle error
+    delta_Cla = eye(3) + ...
+        SkewSymmetric([delta_tau_i delta_phi delta_kappa]); % scan angle errors
+    Cla = Euler2Dcm(tau_i,0,0);
+    Cla = eye(3) + SkewSymmetric(tau_i,0,0);
+    if external_INS
+        [Cbn,Cen,v_ned] = INSfile(t);
+        p_enu = p_enu+Cned2enu*v_ned/f_p;
+    else
+        Cbn = INS(t);
+        Cen= Euler2Dcm(0,-pi,0);
+        p_enu = GPS(t,Cned2enu*v_ned,p0_enu); % ENU
+    end
+    
+    if t<0.01
+        surfaceDefinition  = [0;0;0];
+    elseif 0.01 < t && t <0.02
+        surfaceDefinition  = [1;0;0];
+    elseif 0.02 < t && t< 0.03
+        surfaceDefinition  = [-1;0;0];
+    elseif 0.03 < t && t< 0.04
+        surfaceDefinition  = [0;1;0];
+    elseif 0.04 < t && t< 0.05
+        surfaceDefinition  = [0;-1;0];
+    end
+    
+    Rtag = Cned2enu*Cbn*Cab*Cla;          % from instantaneous beam direction to ENU
+    c = Cned2enu*Cbn*t_LG+p_enu;
+    s = ScannerOutput(c,surfaceDefinition,Rtag);  % real surface geolocatoin
+    p = Rtag*[0;0;s]+c;
+    pstar = Cned2enu*delta_Cbn*Cbn*(delta_Cab*Cab*delta_Cla*Cla*[0;0;(s+delta_r)]+t_LG+delta_t_LG)+p_enu; % biased surface geolocation
+    
+    Rtag2 = Cned2enu*delta_Cbn*Cbn*delta_Cab*Cab*delta_Cla*Cla;        
+    c2 = Cned2enu*delta_Cbn*Cbn*(t_LG+delta_t_LG)+p_enu;
+    s2 = ScannerOutput(c2,surfaceDefinition,Rtag2);
+    
+    ALS_loc(:,idx) = p_enu;            % ENU
+    surface(:,idx) = p;                % ENU
+    ALS_scan(:,idx) = pstar;
+    ins_euler(:,idx) = Dcm2Euler(Cbn);
+    ins_v_ned(:,idx) = v_ned;
+    rho(idx) = s2 + delta_r;
+    tau_i_vec(idx) = tau_i;
+    surfaces(:,idx) = surfaceDefinition;
 end
-R_G = Euler2Clb(180,0,0);
-ALS_scan = (ALS_scan'*R_G)';
-surface = (surface'*R_G)';
-ALS_loc = (ALS_loc'*R_G)';
+
 ALS_err = ALS_scan-surface;
 figure(1);
+title('Scene');
 scatter3(surface(1,:),surface(2,:),surface(3,:),'.');hold on;
 plot3(ALS_loc(1,:),ALS_loc(2,:),ALS_loc(3,:),'g');
 scatter3(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:),'r','.');
-xlabel('X'); ylabel('Y'); zlabel('Z');
+xlabel('E'); ylabel('N'); zlabel('U');
 legend({'surface','trajectory', 'scan'}); 
 
-figure(2);
-Scatter2Surf(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:));
-hold on;
-Scatter2Surf(surface(1,:),surface(2,:),surface(3,:));
-legend({'scan','surface'}); 
+% figure(2);
+% title('ALS scan');
+% Scatter2Surf(ALS_scan(1,:),ALS_scan(2,:),ALS_scan(3,:));
+% hold on;
+% Scatter2Surf(surface(1,:),surface(2,:),surface(3,:));
+% xlabel('E'); ylabel('N'); zlabel('U');
+% legend({'scan','surface'}); 
+
+% figure(3);
+% title('Platform performance');
+% t = 0:1/f_p:(simulationLengthTime-1/f_p);
+% subplot(2,2,1:2);
+% plot3(ALS_loc(1,:),ALS_loc(2,:),ALS_loc(3,:),'g');
+% xlabel('E'); ylabel('N'); zlabel('U');
+% legend({'trajectory'}); 
+% subplot(2,2,3);
+% plot(t,ins_euler'*180/pi); 
+% legend({'\phi','\theta','\psi'}); 
+% xlabel('sec'); ylabel('deg');
+% subplot(2,2,4);
+% plot(t,ins_v_ned'); legend({'V_N','V_E','V_D'}); 
+% xlabel('sec'); ylabel('m/s');
+
+
+biases = BiasesRecovery(ALS_loc,surfaces,ins_euler,rho,tau_i_vec);
+biases/d2r
